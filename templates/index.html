@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Secure File Encryption</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 2em;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 { margin-bottom: 1em; }
+    input[type="file"], input[type="text"] {
+      width: 100%;
+      margin: 0.5em 0 1em;
+    }
+    button {
+      width: 100%;
+      padding: 0.75em;
+      margin-bottom: 1em;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .key-box {
+      word-break: break-all;
+      font-size: 0.9em;
+      background: #eee;
+      padding: 0.5em;
+      border-radius: 5px;
+      margin-bottom: 1em;
+    }
+    .info {
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🔐 File Encryption Service</h2>
+
+    <form id="encryptForm">
+      <label>📁 Select file to encrypt:</label>
+      <input type="file" id="encFile" required />
+      <button type="submit">Encrypt File</button>
+    </form>
+
+    <div id="encKeyBox" style="display: none;">
+      <p><strong>Encryption Key (save this!):</strong></p>
+      <div class="key-box" id="encKey"></div>
+      <div class="info">Your encrypted file will download automatically.</div>
+    </div>
+
+    <hr>
+
+    <form id="decryptForm">
+      <label>📁 Select file to decrypt:</label>
+      <input type="file" id="decFile" required />
+      <label>🔑 Enter decryption key:</label>
+      <input type="text" id="decKey" required />
+      <button type="submit">Decrypt File</button>
+    </form>
+
+    <div id="decInfo" class="info" style="display: none;">Decryption successful. File is downloading...</div>
+  </div>
+
+  <script>
+    const encryptForm = document.getElementById('encryptForm');
+    const decryptForm = document.getElementById('decryptForm');
+
+    encryptForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('encFile');
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      const response = await fetch('/encrypt', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) return alert("Encryption failed.");
+      
+      const blob = await response.blob();
+      const key = response.headers.get('X-Key');  // or get from JSON if returned that way
+      const filename = 'encrypted_' + fileInput.files[0].name;
+
+      // Show key to user
+      document.getElementById('encKeyBox').style.display = 'block';
+      document.getElementById('encKey').innerText = key;
+
+      // Download file
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    });
+
+    decryptForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('decFile');
+      const key = document.getElementById('decKey').value;
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('key', key);
+
+      const response = await fetch('/decrypt', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) return alert("Decryption failed. Check your key or file.");
+
+      const blob = await response.blob();
+      const filename = fileInput.files[0].name.replace('encrypted_', 'decrypted_');
+
+      document.getElementById('decInfo').style.display = 'block';
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    });
+  </script>
+</body>
+</html>
