@@ -1,5 +1,5 @@
 fastapi
 uvicorn
 python-multipart
-cryptography
+cryptography>=41.0.2
 jinja2
